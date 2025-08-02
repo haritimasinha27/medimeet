@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import Header from "@/components/header";
 import { dark } from "@clerk/themes";
 import { ThemeProvider } from "@/components/theme-provider";
+import CreditAllocator from "@/components/credit-allocator";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
+            <CreditAllocator />
             <Header />
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
