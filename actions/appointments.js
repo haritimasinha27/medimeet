@@ -14,13 +14,13 @@ const vonage = initializeVonage();
  * Book a new appointment with a doctor
  */
 export async function bookAppointment(formData) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
     // Get the patient user
     const patient = await db.user.findUnique({
       where: {
@@ -104,7 +104,7 @@ export async function bookAppointment(formData) {
     }
 
     // Create a new Vonage Video API session
-    let sessionId;
+    let sessionId = null;
     try {
       sessionId = await createVideoSession();
     } catch (videoError) {
@@ -138,7 +138,11 @@ export async function bookAppointment(formData) {
     revalidatePath("/appointments");
     return { success: true, appointment: appointment };
   } catch (error) {
-    throw new Error("Failed to book appointment:" + error.message);
+    // Return a structured error response instead of throwing
+    return { 
+      success: false, 
+      error: error.message || "Failed to book appointment" 
+    };
   }
 }
 
