@@ -495,7 +495,7 @@ export function AppointmentCard({
                           Saving...
                         </>
                       ) : (
-                        "Save Notes"
+                        "Save Notes" //save notes
                       )}
                     </Button>
                   </div>
