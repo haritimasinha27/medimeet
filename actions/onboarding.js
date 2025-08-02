@@ -89,7 +89,7 @@ export async function getCurrentUser() {
   }
 
   try {
-    const user = await db.user.findUnique({
+    const user = await db.user.findFirst({
       where: {
         clerkUserId: userId,
       },

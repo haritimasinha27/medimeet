@@ -7,6 +7,7 @@ import { db } from "@/lib/prisma";
  */
 export async function getDoctorsBySpecialty(specialty) {
   try {
+    console.log("specialty", specialty);
     const doctors = await db.user.findMany({
       where: {
         role: "DOCTOR",
@@ -17,8 +18,9 @@ export async function getDoctorsBySpecialty(specialty) {
         name: "asc",
       },
     });
-
+    console.log("doctors", doctors);
     return { doctors };
+    
   } catch (error) {
     console.error("Failed to fetch doctors by specialty:", error);
     return { error: "Failed to fetch doctors" };
