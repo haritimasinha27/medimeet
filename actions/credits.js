@@ -105,9 +105,8 @@ export async function checkAndAllocateCredits(user) {
       return updatedUser;
     });
 
-    // Revalidate relevant paths to reflect updated credit balance
-    revalidatePath("/doctors");
-    revalidatePath("/appointments");
+    // Note: revalidatePath calls removed to avoid render-time issues
+    // The UI will update when the user navigates or refreshes
 
     return updatedUser;
   } catch (error) {
@@ -191,6 +190,123 @@ export async function deductCreditsForAppointment(userId, doctorId) {
     return { success: true, user: result };
   } catch (error) {
     console.error("Failed to deduct credits:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Client-safe function to check and allocate credits
+ * This can be called from client components without causing render issues
+ */
+export async function allocateCreditsIfNeeded() {
+  "use server";
+  
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+      include: {
+        transactions: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Only allocate credits for patients
+    if (user.role !== "PATIENT") {
+      return { success: true, user };
+    }
+
+    // Check which plan the user has
+    const { has } = await auth();
+    const hasBasic = has({ plan: "free_user" });
+    const hasStandard = has({ plan: "standard" });
+    const hasPremium = has({ plan: "premium" });
+
+    let currentPlan = null;
+    let creditsToAllocate = 0;
+
+    if (hasPremium) {
+      currentPlan = "premium";
+      creditsToAllocate = PLAN_CREDITS.premium;
+    } else if (hasStandard) {
+      currentPlan = "standard";
+      creditsToAllocate = PLAN_CREDITS.standard;
+    } else if (hasBasic) {
+      currentPlan = "free_user";
+      creditsToAllocate = PLAN_CREDITS.free_user;
+    }
+
+    // If user doesn't have any plan, just return the user
+    if (!currentPlan) {
+      return { success: true, user };
+    }
+
+    // Check if we already allocated credits for this month
+    const currentMonth = format(new Date(), "yyyy-MM");
+
+    // If there's a transaction this month, check if it's for the same plan
+    if (user.transactions.length > 0) {
+      const latestTransaction = user.transactions[0];
+      const transactionMonth = format(
+        new Date(latestTransaction.createdAt),
+        "yyyy-MM"
+      );
+      const transactionPlan = latestTransaction.packageId;
+
+      // If we already allocated credits for this month and the plan is the same, just return
+      if (
+        transactionMonth === currentMonth &&
+        transactionPlan === currentPlan
+      ) {
+        return { success: true, user };
+      }
+    }
+
+    // Allocate credits and create transaction record
+    const updatedUser = await db.$transaction(async (tx) => {
+      // Create transaction record
+      await tx.creditTransaction.create({
+        data: {
+          userId: user.id,
+          amount: creditsToAllocate,
+          type: "CREDIT_PURCHASE",
+          packageId: currentPlan,
+        },
+      });
+
+      // Update user's credit balance
+      const updatedUser = await tx.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          credits: {
+            increment: creditsToAllocate,
+          },
+        },
+      });
+
+      return updatedUser;
+    });
+
+    return { success: true, user: updatedUser };
+  } catch (error) {
+    console.error("Failed to allocate credits:", error);
     return { success: false, error: error.message };
   }
 }

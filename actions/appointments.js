@@ -110,7 +110,14 @@ export async function bookAppointment(formData) {
     }
 
     // Create a new Vonage Video API session
-    const sessionId = await createVideoSession();
+    let sessionId;
+    try {
+      sessionId = await createVideoSession();
+    } catch (videoError) {
+      console.error("Video session creation failed:", videoError);
+      // Continue without video session for now
+      sessionId = null;
+    }
 
     // Deduct credits from patient and add to doctor
     const { success, error } = await deductCreditsForAppointment(
@@ -148,9 +155,15 @@ export async function bookAppointment(formData) {
  */
 async function createVideoSession() {
   try {
+    // Check if Vonage credentials are properly configured
+    if (!process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID || !process.env.VONAGE_PRIVATE_KEY) {
+      throw new Error("Vonage credentials not configured");
+    }
+
     const session = await vonage.video.createSession({ mediaMode: "routed" });
     return session.sessionId;
   } catch (error) {
+    console.error("Vonage video session creation error:", error);
     throw new Error("Failed to create video session: " + error.message);
   }
 }
@@ -220,6 +233,11 @@ export async function generateVideoToken(formData) {
     const appointmentEndTime = new Date(appointment.endTime);
     const expirationTime =
       Math.floor(appointmentEndTime.getTime() / 1000) + 60 * 60; // 1 hour after end time
+
+    // Check if video session is available
+    if (!appointment.videoSessionId) {
+      throw new Error("Video session not available for this appointment");
+    }
 
     // Use user's name and role as connection data
     const connectionData = JSON.stringify({
