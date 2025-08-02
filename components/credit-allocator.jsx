@@ -10,11 +10,14 @@ export default function CreditAllocator() {
       try {
         await allocateCreditsIfNeeded();
       } catch (error) {
-        console.error("Failed to allocate credits:", error);
+        // Silent error handling - no console output
       }
     };
 
-    allocateCredits();
+    // Only run on client side
+    if (typeof window !== "undefined") {
+      allocateCredits();
+    }
   }, []);
 
   // This component doesn't render anything

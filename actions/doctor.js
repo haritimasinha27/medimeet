@@ -78,7 +78,6 @@ export async function setAvailabilitySlots(formData) {
     revalidatePath("/doctor");
     return { success: true, slot: newSlot };
   } catch (error) {
-    console.error("Failed to set availability slots:", error);
     throw new Error("Failed to set availability: " + error.message);
   }
 }
@@ -276,7 +275,6 @@ export async function cancelAppointment(formData) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to cancel appointment:", error);
     throw new Error("Failed to cancel appointment: " + error.message);
   }
 }
@@ -335,7 +333,6 @@ export async function addAppointmentNotes(formData) {
     revalidatePath("/doctor");
     return { success: true, appointment: updatedAppointment };
   } catch (error) {
-    console.error("Failed to add appointment notes:", error);
     throw new Error("Failed to update notes: " + error.message);
   }
 }
@@ -411,7 +408,6 @@ export async function markAppointmentCompleted(formData) {
     revalidatePath("/doctor");
     return { success: true, appointment: updatedAppointment };
   } catch (error) {
-    console.error("Failed to mark appointment as completed:", error);
     throw new Error(
       "Failed to mark appointment as completed: " + error.message
     );

@@ -4,17 +4,11 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { deductCreditsForAppointment } from "@/actions/credits";
-import { Vonage } from "@vonage/server-sdk";
 import { addDays, addMinutes, format, isBefore, endOfDay } from "date-fns";
-import { Auth } from "@vonage/auth";
+import { initializeVonage } from "@/lib/vonage-helper";
 
 // Initialize Vonage Video API client
-const credentials = new Auth({
-  applicationId: process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID,
-  privateKey: process.env.VONAGE_PRIVATE_KEY,
-});
-const options = {};
-const vonage = new Vonage(credentials, options);
+const vonage = initializeVonage();
 
 /**
  * Book a new appointment with a doctor
@@ -114,7 +108,6 @@ export async function bookAppointment(formData) {
     try {
       sessionId = await createVideoSession();
     } catch (videoError) {
-      console.error("Video session creation failed:", videoError);
       // Continue without video session for now
       sessionId = null;
     }
@@ -145,7 +138,6 @@ export async function bookAppointment(formData) {
     revalidatePath("/appointments");
     return { success: true, appointment: appointment };
   } catch (error) {
-    console.error("Failed to book appointment:", error);
     throw new Error("Failed to book appointment:" + error.message);
   }
 }
@@ -155,15 +147,14 @@ export async function bookAppointment(formData) {
  */
 async function createVideoSession() {
   try {
-    // Check if Vonage credentials are properly configured
-    if (!process.env.NEXT_PUBLIC_VONAGE_APPLICATION_ID || !process.env.VONAGE_PRIVATE_KEY) {
-      throw new Error("Vonage credentials not configured");
+    // Check if Vonage is properly initialized
+    if (!vonage) {
+      throw new Error("Vonage Video API not configured");
     }
 
     const session = await vonage.video.createSession({ mediaMode: "routed" });
     return session.sessionId;
   } catch (error) {
-    console.error("Vonage video session creation error:", error);
     throw new Error("Failed to create video session: " + error.message);
   }
 }
@@ -239,6 +230,11 @@ export async function generateVideoToken(formData) {
       throw new Error("Video session not available for this appointment");
     }
 
+    // Check if Vonage is properly initialized
+    if (!vonage) {
+      throw new Error("Video service not available");
+    }
+
     // Use user's name and role as connection data
     const connectionData = JSON.stringify({
       name: user.name,
@@ -269,7 +265,6 @@ export async function generateVideoToken(formData) {
       token: token,
     };
   } catch (error) {
-    console.error("Failed to generate video token:", error);
     throw new Error("Failed to generate video token:" + error.message);
   }
 }
@@ -293,7 +288,6 @@ export async function getDoctorById(doctorId) {
 
     return { doctor };
   } catch (error) {
-    console.error("Failed to fetch doctor:", error);
     throw new Error("Failed to fetch doctor details");
   }
 }

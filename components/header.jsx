@@ -14,9 +14,13 @@ import { Badge } from "./ui/badge";
 import Image from "next/image";
 
 export default async function Header() {
-  const user = await checkUser();
-  // Removed checkAndAllocateCredits call to avoid render-time issues
-  // Credit allocation should be handled in a separate action or middleware
+  let user = null;
+  
+  try {
+    user = await checkUser();
+  } catch (error) {
+    // Silent error handling - no console output
+  }
 
   return (
     <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-10 supports-[backdrop-filter]:bg-background/60">

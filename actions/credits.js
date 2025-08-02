@@ -110,10 +110,6 @@ export async function checkAndAllocateCredits(user) {
 
     return updatedUser;
   } catch (error) {
-    console.error(
-      "Failed to check subscription and allocate credits:",
-      error.message
-    );
     return null;
   }
 }
@@ -189,7 +185,6 @@ export async function deductCreditsForAppointment(userId, doctorId) {
 
     return { success: true, user: result };
   } catch (error) {
-    console.error("Failed to deduct credits:", error);
     return { success: false, error: error.message };
   }
 }
@@ -306,7 +301,6 @@ export async function allocateCreditsIfNeeded() {
 
     return { success: true, user: updatedUser };
   } catch (error) {
-    console.error("Failed to allocate credits:", error);
     return { success: false, error: error.message };
   }
 }
