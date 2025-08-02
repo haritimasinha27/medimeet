@@ -6,6 +6,7 @@ import Header from "@/components/header";
 import { dark } from "@clerk/themes";
 import { ThemeProvider } from "@/components/theme-provider";
 import CreditAllocator from "@/components/credit-allocator";
+import ErrorBoundary from "@/components/error-boundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,16 +33,18 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
-            <CreditAllocator />
-            <Header />
-            <main className="min-h-screen">{children}</main>
-            <Toaster richColors />
+            <ErrorBoundary>
+              <CreditAllocator />
+              <Header />
+              <main className="min-h-screen">{children}</main>
+              <Toaster richColors />
 
-            <footer className="bg-muted/50 py-12">
-              <div className="container mx-auto px-4 text-center text-gray-200">
-                <p>Made with 💗 by HARITIMA SINHA</p>
-              </div>
-            </footer>
+              <footer className="bg-muted/50 py-12">
+                <div className="container mx-auto px-4 text-center text-gray-200">
+                  <p>Made with 💗 by HARITIMA SINHA</p>
+                </div>
+              </footer>
+            </ErrorBoundary>
           </ThemeProvider>
         </body>
       </html>
