@@ -8,13 +8,13 @@ import { revalidatePath } from "next/cache";
  * Set doctor's availability slots
  */
 export async function setAvailabilitySlots(formData) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     // Get the doctor
     const doctor = await db.user.findUnique({
       where: {
@@ -24,7 +24,7 @@ export async function setAvailabilitySlots(formData) {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
     // Get form data
@@ -33,11 +33,11 @@ export async function setAvailabilitySlots(formData) {
 
     // Validate input
     if (!startTime || !endTime) {
-      throw new Error("Start time and end time are required");
+      return { success: false, error: "Start time and end time are required" };
     }
 
     if (startTime >= endTime) {
-      throw new Error("Start time must be before end time");
+      return { success: false, error: "Start time must be before end time" };
     }
 
     // Check if the doctor already has slots
@@ -78,7 +78,7 @@ export async function setAvailabilitySlots(formData) {
     revalidatePath("/doctor");
     return { success: true, slot: newSlot };
   } catch (error) {
-    throw new Error("Failed to set availability: " + error.message);
+    return { success: false, error: "Failed to set availability: " + error.message };
   }
 }
 
@@ -86,13 +86,13 @@ export async function setAvailabilitySlots(formData) {
  * Get doctor's current availability slots
  */
 export async function getDoctorAvailability() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -101,7 +101,7 @@ export async function getDoctorAvailability() {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
     const availabilitySlots = await db.availability.findMany({
@@ -113,24 +113,23 @@ export async function getDoctorAvailability() {
       },
     });
 
-    return { slots: availabilitySlots };
+    return { success: true, slots: availabilitySlots };
   } catch (error) {
-    throw new Error("Failed to fetch availability slots " + error.message);
+    return { success: false, error: "Failed to fetch availability slots: " + error.message };
   }
 }
 
 /**
  * Get doctor's upcoming appointments
  */
-
 export async function getDoctorAppointments() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -139,7 +138,7 @@ export async function getDoctorAppointments() {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
     const appointments = await db.appointment.findMany({
@@ -157,9 +156,9 @@ export async function getDoctorAppointments() {
       },
     });
 
-    return { appointments };
+    return { success: true, appointments };
   } catch (error) {
-    throw new Error("Failed to fetch appointments " + error.message);
+    return { success: false, error: "Failed to fetch appointments: " + error.message };
   }
 }
 
