@@ -2,8 +2,8 @@
 const nextConfig = {
   experimental: {
     serverComponentsHmrCache: false, // defaults to true
-    serverComponentsExternalPackages: ['@prisma/client'],
   },
+  serverExternalPackages: ['@prisma/client'],
   images: {
     remotePatterns: [
       {

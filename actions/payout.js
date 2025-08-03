@@ -12,13 +12,13 @@ const DOCTOR_EARNINGS_PER_CREDIT = 8; // $8 to doctor
  * Request payout for all remaining credits
  */
 export async function requestPayout(formData) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -27,13 +27,13 @@ export async function requestPayout(formData) {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
     const paypalEmail = formData.get("paypalEmail");
 
     if (!paypalEmail) {
-      throw new Error("PayPal email is required");
+      return { success: false, error: "PayPal email is required" };
     }
 
     // Check if doctor has any pending payout requests
@@ -45,20 +45,21 @@ export async function requestPayout(formData) {
     });
 
     if (existingPendingPayout) {
-      throw new Error(
-        "You already have a pending payout request. Please wait for it to be processed."
-      );
+      return { 
+        success: false, 
+        error: "You already have a pending payout request. Please wait for it to be processed." 
+      };
     }
 
     // Get doctor's current credit balance
     const creditCount = doctor.credits;
 
     if (creditCount === 0) {
-      throw new Error("No credits available for payout");
+      return { success: false, error: "No credits available for payout" };
     }
 
     if (creditCount < 1) {
-      throw new Error("Minimum 1 credit required for payout");
+      return { success: false, error: "Minimum 1 credit required for payout" };
     }
 
     const totalAmount = creditCount * CREDIT_VALUE;
@@ -81,8 +82,7 @@ export async function requestPayout(formData) {
     revalidatePath("/doctor");
     return { success: true, payout };
   } catch (error) {
-    console.error("Failed to request payout:", error);
-    throw new Error("Failed to request payout: " + error.message);
+    return { success: false, error: "Failed to request payout: " + error.message };
   }
 }
 
@@ -90,13 +90,13 @@ export async function requestPayout(formData) {
  * Get doctor's payout history
  */
 export async function getDoctorPayouts() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -105,7 +105,7 @@ export async function getDoctorPayouts() {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
     const payouts = await db.payout.findMany({
@@ -117,9 +117,9 @@ export async function getDoctorPayouts() {
       },
     });
 
-    return { payouts };
+    return { success: true, payouts };
   } catch (error) {
-    throw new Error("Failed to fetch payouts: " + error.message);
+    return { success: false, error: "Failed to fetch payouts: " + error.message };
   }
 }
 
@@ -127,13 +127,13 @@ export async function getDoctorPayouts() {
  * Get doctor's earnings summary
  */
 export async function getDoctorEarnings() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const doctor = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -142,54 +142,54 @@ export async function getDoctorEarnings() {
     });
 
     if (!doctor) {
-      throw new Error("Doctor not found");
+      return { success: false, error: "Doctor not found" };
     }
 
-    // Get all completed appointments for this doctor
-    const completedAppointments = await db.appointment.findMany({
+    // Get total credits earned by doctor (positive transactions)
+    const totalCreditsEarned = await db.creditTransaction.aggregate({
       where: {
-        doctorId: doctor.id,
-        status: "COMPLETED",
+        userId: doctor.id,
+        amount: {
+          gt: 0,
+        },
+      },
+      _sum: {
+        amount: true,
       },
     });
 
-    // Calculate this month's completed appointments
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
+    // Get total credits used for payouts
+    const totalCreditsPayout = await db.payout.aggregate({
+      where: {
+        doctorId: doctor.id,
+        status: {
+          in: ["PROCESSED", "PROCESSING"],
+        },
+      },
+      _sum: {
+        credits: true,
+      },
+    });
 
-    const thisMonthAppointments = completedAppointments.filter(
-      (appointment) => new Date(appointment.createdAt) >= currentMonth
-    );
-
-    // Use doctor's actual credits from the user model
-    const totalEarnings = doctor.credits * DOCTOR_EARNINGS_PER_CREDIT; // $8 per credit to doctor
-
-    // Calculate this month's earnings (2 credits per appointment * $8 per credit)
-    const thisMonthEarnings =
-      thisMonthAppointments.length * 2 * DOCTOR_EARNINGS_PER_CREDIT;
-
-    // Simple average per month calculation
-    const averageEarningsPerMonth =
-      totalEarnings > 0
-        ? totalEarnings / Math.max(1, new Date().getMonth() + 1)
-        : 0;
-
-    // Get current credit balance for payout calculations
+    const totalEarned = totalCreditsEarned._sum.amount || 0;
+    const totalPayout = totalCreditsPayout._sum.credits || 0;
     const availableCredits = doctor.credits;
-    const availablePayout = availableCredits * DOCTOR_EARNINGS_PER_CREDIT;
+    const totalEarnings = totalEarned * DOCTOR_EARNINGS_PER_CREDIT;
+    const totalPayoutAmount = totalPayout * DOCTOR_EARNINGS_PER_CREDIT;
+    const availableEarnings = availableCredits * DOCTOR_EARNINGS_PER_CREDIT;
 
     return {
+      success: true,
       earnings: {
-        totalEarnings,
-        thisMonthEarnings,
-        completedAppointments: completedAppointments.length,
-        averageEarningsPerMonth,
+        totalEarned,
+        totalPayout,
         availableCredits,
-        availablePayout,
+        totalEarnings,
+        totalPayoutAmount,
+        availableEarnings,
       },
     };
   } catch (error) {
-    throw new Error("Failed to fetch doctor earnings: " + error.message);
+    return { success: false, error: "Failed to fetch earnings: " + error.message };
   }
 }

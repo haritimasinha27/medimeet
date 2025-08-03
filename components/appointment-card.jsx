@@ -200,8 +200,9 @@ export function AppointmentCard({
       router.push(
         `/video-call?sessionId=${tokenData.videoSessionId}&token=${tokenData.token}&appointmentId=${appointment.id}`
       );
-    } else if (tokenData?.error) {
+    } else if (tokenData && !tokenData.success) {
       setAction(null);
+      toast.error(tokenData.error || "Failed to join video call");
     }
   }, [tokenData, appointment.id, router]);
 

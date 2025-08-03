@@ -11,6 +11,17 @@ import { DoctorEarnings } from "./_components/doctor-earnings";
 export default async function DoctorDashboardPage() {
   const user = await getCurrentUser();
 
+  // Redirect if not a doctor
+  if (user?.role !== "DOCTOR") {
+    redirect("/onboarding");
+  }
+
+  // If not verified, redirect to verification
+  if (user?.verificationStatus !== "VERIFIED") {
+    redirect("/doctor/verification");
+  }
+
+  // Get data with error handling
   const [appointmentsData, availabilityData, earningsData, payoutsData] =
     await Promise.all([
       getDoctorAppointments(),
@@ -19,15 +30,11 @@ export default async function DoctorDashboardPage() {
       getDoctorPayouts(),
     ]);
 
-  //   // Redirect if not a doctor
-  if (user?.role !== "DOCTOR") {
-    redirect("/onboarding");
-  }
-
-  // If already verified, redirect to dashboard
-  if (user?.verificationStatus !== "VERIFIED") {
-    redirect("/doctor/verification");
-  }
+  // Handle errors gracefully
+  const appointments = appointmentsData.success ? appointmentsData.appointments : [];
+  const slots = availabilityData.success ? availabilityData.slots : [];
+  const earnings = earningsData.success ? earningsData.earnings : {};
+  const payouts = payoutsData.success ? payoutsData.payouts : [];
 
   return (
     <Tabs
@@ -60,16 +67,16 @@ export default async function DoctorDashboardPage() {
       <div className="md:col-span-3">
         <TabsContent value="appointments" className="border-none p-0">
           <DoctorAppointmentsList
-            appointments={appointmentsData.appointments || []}
+            appointments={appointments}
           />
         </TabsContent>
         <TabsContent value="availability" className="border-none p-0">
-          <AvailabilitySettings slots={availabilityData.slots || []} />
+          <AvailabilitySettings slots={slots} />
         </TabsContent>
         <TabsContent value="earnings" className="border-none p-0">
           <DoctorEarnings
-            earnings={earningsData.earnings || {}}
-            payouts={payoutsData.payouts || []}
+            earnings={earnings}
+            payouts={payouts}
           />
         </TabsContent>
       </div>

@@ -168,13 +168,13 @@ async function createVideoSession() {
  * This will be called when either doctor or patient is about to join the call
  */
 export async function generateVideoToken(formData) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const user = await db.user.findUnique({
       where: {
         clerkUserId: userId,
@@ -182,13 +182,13 @@ export async function generateVideoToken(formData) {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      return { success: false, error: "User not found" };
     }
 
     const appointmentId = formData.get("appointmentId");
 
     if (!appointmentId) {
-      throw new Error("Appointment ID is required");
+      return { success: false, error: "Appointment ID is required" };
     }
 
     // Find the appointment and verify the user is part of it
@@ -199,17 +199,17 @@ export async function generateVideoToken(formData) {
     });
 
     if (!appointment) {
-      throw new Error("Appointment not found");
+      return { success: false, error: "Appointment not found" };
     }
 
     // Verify the user is either the doctor or the patient for this appointment
     if (appointment.doctorId !== user.id && appointment.patientId !== user.id) {
-      throw new Error("You are not authorized to join this call");
+      return { success: false, error: "You are not authorized to join this call" };
     }
 
     // Verify the appointment is scheduled
     if (appointment.status !== "SCHEDULED") {
-      throw new Error("This appointment is not currently scheduled");
+      return { success: false, error: "This appointment is not currently scheduled" };
     }
 
     // Verify the appointment is within a valid time range (e.g., starting 5 minutes before scheduled time)
@@ -218,9 +218,10 @@ export async function generateVideoToken(formData) {
     const timeDifference = (appointmentTime - now) / (1000 * 60); // difference in minutes
 
     if (timeDifference > 30) {
-      throw new Error(
-        "The call will be available 30 minutes before the scheduled time"
-      );
+      return { 
+        success: false, 
+        error: "The call will be available 30 minutes before the scheduled time" 
+      };
     }
 
     // Generate a token for the video session
@@ -231,12 +232,15 @@ export async function generateVideoToken(formData) {
 
     // Check if video session is available
     if (!appointment.videoSessionId) {
-      throw new Error("Video session not available for this appointment");
+      return { success: false, error: "Video session not available for this appointment" };
     }
 
     // Check if Vonage is properly initialized
     if (!vonage) {
-      throw new Error("Video service not available");
+      return { 
+        success: false, 
+        error: "Video service not available. Please contact support to enable video calls." 
+      };
     }
 
     // Use user's name and role as connection data
@@ -246,30 +250,37 @@ export async function generateVideoToken(formData) {
       userId: user.id,
     });
 
-    // Generate the token with appropriate role and expiration
-    const token = vonage.video.generateClientToken(appointment.videoSessionId, {
-      role: "publisher", // Both doctor and patient can publish streams
-      expireTime: expirationTime,
-      data: connectionData,
-    });
+    try {
+      // Generate the token with appropriate role and expiration
+      const token = vonage.video.generateClientToken(appointment.videoSessionId, {
+        role: "publisher", // Both doctor and patient can publish streams
+        expireTime: expirationTime,
+        data: connectionData,
+      });
 
-    // Update the appointment with the token
-    await db.appointment.update({
-      where: {
-        id: appointmentId,
-      },
-      data: {
-        videoSessionToken: token,
-      },
-    });
+      // Update the appointment with the token
+      await db.appointment.update({
+        where: {
+          id: appointmentId,
+        },
+        data: {
+          videoSessionToken: token,
+        },
+      });
 
-    return {
-      success: true,
-      videoSessionId: appointment.videoSessionId,
-      token: token,
-    };
+      return {
+        success: true,
+        videoSessionId: appointment.videoSessionId,
+        token: token,
+      };
+    } catch (vonageError) {
+      return { 
+        success: false, 
+        error: "Video service configuration error. Please contact support." 
+      };
+    }
   } catch (error) {
-    throw new Error("Failed to generate video token:" + error.message);
+    return { success: false, error: "Failed to generate video token: " + error.message };
   }
 }
 
