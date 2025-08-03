@@ -7,6 +7,7 @@ import { dark } from "@clerk/themes";
 import { ThemeProvider } from "@/components/theme-provider";
 import CreditAllocator from "@/components/credit-allocator";
 import ErrorBoundary from "@/components/error-boundary";
+import ProductionErrorBoundary from "@/components/production-error-boundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
       appearance={{
         baseTheme: dark,
       }}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     >
       <html lang="en" suppressHydrationWarning>
         <head>
@@ -33,18 +35,20 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
-            <ErrorBoundary>
-              <CreditAllocator />
-              <Header />
-              <main className="min-h-screen">{children}</main>
-              <Toaster richColors />
+            <ProductionErrorBoundary>
+              <ErrorBoundary>
+                <CreditAllocator />
+                <Header />
+                <main className="min-h-screen">{children}</main>
+                <Toaster richColors />
 
-              <footer className="bg-muted/50 py-12">
-                <div className="container mx-auto px-4 text-center text-gray-200">
-                  <p>Made with 💗 by HARITIMA SINHA</p>
-                </div>
-              </footer>
-            </ErrorBoundary>
+                <footer className="bg-muted/50 py-12">
+                  <div className="container mx-auto px-4 text-center text-gray-200">
+                    <p>Made with 💗 by HARITIMA SINHA</p>
+                  </div>
+                </footer>
+              </ErrorBoundary>
+            </ProductionErrorBoundary>
           </ThemeProvider>
         </body>
       </html>
