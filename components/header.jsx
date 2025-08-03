@@ -101,6 +101,22 @@ export default async function Header() {
                 </Button>
               </Link>
             )}
+
+            {/* Fallback for when user data is not available */}
+            {!user && (
+              <Link href="/onboarding">
+                <Button
+                  variant="outline"
+                  className="hidden md:inline-flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Complete Profile
+                </Button>
+                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
+                  <User className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
           </SignedIn>
 
           {(!user || user?.role !== "ADMIN") && (
@@ -113,7 +129,7 @@ export default async function Header() {
                 <span className="text-emerald-400">
                   {user && user.role !== "ADMIN" ? (
                     <>
-                      {user.credits}{" "}
+                      {user.credits || 0}{" "}
                       <span className="hidden md:inline">
                         {user?.role === "PATIENT"
                           ? "Credits"

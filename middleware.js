@@ -10,12 +10,25 @@ const isProtectedRoute = createRouteMatcher([
   "/appointments(.*)",
 ]);
 
+const isAuthRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+]);
+
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
+  const { pathname } = req.nextUrl;
 
+  // If user is signed in and trying to access auth pages, redirect to home
+  if (userId && isAuthRoute(req)) {
+    const homeUrl = new URL("/", req.url);
+    return NextResponse.redirect(homeUrl);
+  }
+
+  // If user is not signed in and trying to access protected routes, redirect to sign-in
   if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+    const signInUrl = new URL("/sign-in", req.url);
+    return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();

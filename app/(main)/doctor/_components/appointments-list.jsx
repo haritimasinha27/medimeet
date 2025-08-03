@@ -18,7 +18,8 @@ export default function DoctorAppointmentsList() {
     fetchAppointments();
   }, []);
 
-  const appointments = data?.appointments || [];
+  // Handle the new response format
+  const appointments = data?.success ? data.appointments : [];
 
   return (
     <Card className="border-emerald-900/20">
@@ -32,6 +33,16 @@ export default function DoctorAppointmentsList() {
         {loading ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">Loading appointments...</p>
+          </div>
+        ) : !data?.success ? (
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 mx-auto text-red-500 mb-3" />
+            <h3 className="text-xl font-medium text-white mb-2">
+              Error loading appointments
+            </h3>
+            <p className="text-muted-foreground">
+              {data?.error || "Failed to load appointments"}
+            </p>
           </div>
         ) : appointments.length > 0 ? (
           <div className="space-y-4">

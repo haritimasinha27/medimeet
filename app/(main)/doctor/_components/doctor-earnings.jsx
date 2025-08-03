@@ -34,11 +34,12 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
   const [paypalEmail, setPaypalEmail] = useState("");
 
   const {
-    thisMonthEarnings = 0,
-    completedAppointments = 0,
-    averageEarningsPerMonth = 0,
+    totalEarned = 0,
+    totalPayout = 0,
     availableCredits = 0,
-    availablePayout = 0,
+    totalEarnings = 0,
+    totalPayoutAmount = 0,
+    availableEarnings = 0,
   } = earnings;
 
   // Custom hook for payout request
@@ -68,6 +69,8 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
       setShowPayoutDialog(false);
       setPaypalEmail("");
       toast.success("Payout request submitted successfully!");
+    } else if (data && !data.success) {
+      toast.error(data.error || "Failed to submit payout request");
     }
   }, [data]);
 
@@ -88,7 +91,7 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
                   {availableCredits}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  ${availablePayout.toFixed(2)} available for payout
+                  ${availableEarnings.toFixed(2)} available for payout
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
@@ -102,9 +105,9 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">This Month</p>
+                <p className="text-sm text-muted-foreground">Total Earned</p>
                 <p className="text-3xl font-bold text-white">
-                  ${thisMonthEarnings.toFixed(2)}
+                  ${totalEarnings.toFixed(2)}
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
@@ -119,12 +122,12 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Total Appointments
+                  Total Payout
                 </p>
                 <p className="text-3xl font-bold text-white">
-                  {completedAppointments}
+                  ${totalPayoutAmount.toFixed(2)}
                 </p>
-                <p className="text-xs text-muted-foreground">completed</p>
+                <p className="text-xs text-muted-foreground">paid out</p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
                 <Calendar className="h-6 w-6 text-emerald-400" />
@@ -137,9 +140,9 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg/Month</p>
+                <p className="text-sm text-muted-foreground">Credits Earned</p>
                 <p className="text-3xl font-bold text-white">
-                  ${averageEarningsPerMonth.toFixed(2)}
+                  {totalEarned}
                 </p>
               </div>
               <div className="bg-emerald-900/20 p-3 rounded-full">
@@ -222,7 +225,7 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
                 <div>
                   <p className="text-muted-foreground">Payout Amount</p>
                   <p className="text-white font-medium">
-                    ${availablePayout.toFixed(2)}
+                    ${availableEarnings.toFixed(2)}
                   </p>
                 </div>
                 <div>
@@ -338,7 +341,7 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
               <div className="border-t border-emerald-900/20 pt-2 flex justify-between font-medium">
                 <span className="text-white">Net payout:</span>
                 <span className="text-emerald-400">
-                  ${availablePayout.toFixed(2)}
+                  ${availableEarnings.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -363,7 +366,7 @@ export function DoctorEarnings({ earnings, payouts = [] }) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 Once processed by admin, {availableCredits} credits will be
-                deducted from your account and ${availablePayout.toFixed(2)}{" "}
+                deducted from your account and ${availableEarnings.toFixed(2)}{" "}
                 will be sent to your PayPal.
               </AlertDescription>
             </Alert>
